@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SD Seats Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #000000;
+      --bar: #3a3a3a;
+      --bar-2: #454545;
+      --text: #f2f2f2;
+      --muted: #b9b9b9;
+      --panel: #2f2f2f;
+      --panel-border: #6c6c6c;
+      --blue: #2d57a6;
+      --blue-dark: #182c6e;
+      --red: #cc2732;
+      --red-dark: #8d0a15;
+      --dark: #2a2d33;
+      --shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 0 rgba(0,0,0,0.6);
+      --radius: 4px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 66px 1fr 92px;
+      background: #000;
+    }
+
+    .topbar {
+      background: var(--bar);
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      padding: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .tile {
+      background: var(--bar-2);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: 0.1px;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 14px;
+      min-width: 0;
+    }
+
+    .logo { width: 56px; flex: 0 0 56px; padding: 0; overflow: hidden; }
+    .logo .mini {
+      width: 100%; height: 100%;
+      background: radial-gradient(circle at 30% 30%, #a55bff 0%, #3b2a6e 38%, #1f1738 70%, #0f0b1d 100%);
+      position: relative;
+    }
+    .logo .mini::before {
+      content: ""; position: absolute; inset: 6px; border-radius: 6px;
+      background:
+        radial-gradient(circle at 55% 38%, rgba(255,255,255,0.95) 0 7%, transparent 8%),
+        radial-gradient(circle at 42% 53%, rgba(255,125,160,0.95) 0 8%, transparent 9%),
+        radial-gradient(circle at 63% 55%, rgba(110,220,255,0.9) 0 9%, transparent 10%);
+    }
+
+    .help { width: 84px; flex: 0 0 84px; }
+    .circle { width: 52px; flex: 0 0 52px; font-size: 15px; }
+    .year { width: 110px; flex: 0 0 110px; font-size: 18px; font-family: 'Bree Serif', serif; }
+    .mapname { width: 280px; flex: 0 0 280px; justify-content: flex-start; font-family: 'Bree Serif', serif; font-size: 16px; }
+    .site { width: 270px; flex: 0 0 270px; }
+    .small { width: 112px; flex: 0 0 112px; }
+    .mid { width: 118px; flex: 0 0 118px; }
+    .spacer { flex: 1 1 auto; min-width: 0; }
+    .days { width: 150px; flex: 0 0 150px; justify-content: flex-end; }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 490px;
+      min-height: 0;
+      background: #000;
+    }
+
+    .map-area {
+      position: relative;
+      min-width: 0;
+      background: #000;
+      overflow: hidden; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #map-svg-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #map-svg-container object {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      pointer-events: auto;
+    }
+
+    .right {
+      position: relative;
+      min-width: 0;
+      background: #000;
+      padding-top: 20px;
+      padding-right: 18px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      justify-items: end;
+    }
+
+    .donut-wrap {
+      width: 390px;
+      height: 390px;
+      margin-right: 12px;
+      position: relative;
+      border-radius: 50%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .donut-svg-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .donut-svg-layer path {
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    
+    .donut-svg-layer path:hover {
+      opacity: 0.85;
+    }
+
+    .donut-inner {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: #000;
+      border: 2px solid #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #f5f5f5;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .donut-cycle-text {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .donut-inner span {
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    .seat-box {
+      margin-top: 24px;
+      width: 460px;
+      height: 128px;
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      background: rgba(50,50,50,0.94);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 34px;
+      padding: 16px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+
+    .seat-pill {
+      min-width: 150px;
+      height: 44px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      padding: 0 18px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 17px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.16) inset;
+    }
+
+    .seat-pill.red { background: #d3232f; }
+    .seat-pill.blue { background: #2b55a4; }
+
+    /* Tooltips */
+    .custom-tooltip {
+      position: absolute;
+      background: rgba(30, 30, 30, 0.95);
+      border: 2px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 12px;
+      color: white;
+      pointer-events: none;
+      display: none;
+      z-index: 1000;
+      min-width: 240px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+    
+    .segment-tooltip {
+      position: absolute;
+      background: rgba(20, 20, 20, 0.98);
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      padding: 14px;
+      color: white;
+      pointer-events: none;
+      display: none;
+      z-index: 1001;
+      min-width: 245px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+    }
+    .seg-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .seg-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 13px;
+      margin: 5px 0;
+    }
+    .seg-item .district-lbl { font-weight: 500; opacity: 0.85; }
+    .seg-item .mgn { font-weight: 700; }
+    .seg-item .mgn.p-1 { color: #8aa2d2; }
+    .seg-item .mgn.p-2 { color: #df7a73; }
+
+    .tooltip-title {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 4px;
+      font-family: 'Bree Serif', serif;
+    }
+    .tooltip-margin {
+      font-size: 15px;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .tooltip-margin.party-1 { color: #8aa2d2; }
+    .tooltip-margin.party-2 { color: #df7a73; }
+    
+    .tooltip-header {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 4px 0;
+      font-size: 15px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .tooltip-row span { font-weight: bold; }
+
+    .timeline {
+      background: #000;
+      display: grid;
+      grid-template-columns: 1fr auto 16px;
+      align-items: center;
+      gap: 16px;
+      padding: 0 0 12px 40px;
+    }
+
+    .slider-container {
+      position: relative;
+      width: 100%;
+      height: 26px;
+    }
+
+    .slider-track-bg {
+      position: absolute;
+      inset: 0;
+      background: #8e8e8e;
+      border-radius: 2px;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.18);
+      pointer-events: none;
+    }
+
+    .slider-pegs {
+      position: absolute;
+      left: 15px; 
+      right: 15px;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .slider-peg-tick {
+      position: absolute;
+      top: 3px;
+      width: 2px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      transform: translateX(-50%);
+    }
+
+    input[type=range].map-slider {
+      position: absolute;
+      inset: 0;
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+      margin: 0;
+      z-index: 2; 
+    }
+
+    input[type=range].map-slider:focus { outline: none; }
+    input[type=range].map-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 26px; width: 30px;
+      border-radius: 2px;
+      background: #d8d8d8;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .date {
+      color: #f2f2f2;
+      font-weight: 700;
+      font-size: 16px;
+      padding-right: 6px;
+    }
+
+    @media (max-width: 1400px) {
+      .main { grid-template-columns: 1fr 430px; }
+      .donut-wrap { width: 330px; height: 330px; }
+      .donut-inner { width: 140px; height: 140px; }
+      .donut-cycle-text { font-size: 32px; }
+      .seat-box { width: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="tile logo"><div class="mini"></div></div>
+      <div class="tile help">Help</div>
+      <div class="tile circle">S</div>
+      <div class="tile year" id="topbar-year">LOADING...</div>
+      <div class="tile mapname" id="map-title">Map: Presidential Elections</div>
+      <div class="tile site">map.mockelection.com</div>
+      <div class="tile small">Margins</div>
+      <div class="tile mid">Settings</div>
+      <div class="tile mid">Compare</div>
+      <div class="tile small">Copy</div>
+      <div class="tile small">Clear</div>
+      <div class="spacer"></div>
+      <div class="tile days">Live Feed</div>
+    </div>
+
+    <div class="main">
+      <div class="map-area">
+        <div id="map-svg-container">
+          <object id="external-map-object" type="image/svg+xml" data="map.svg"></object>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="donut-wrap" id="donut-container">
+          <svg class="donut-svg-layer" viewBox="0 0 390 390">
+            <defs>
+              <pattern id="donut-stripe" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="5" stroke="rgba(0,0,0,0.45)" stroke-width="2.5" />
+              </pattern>
+            </defs>
+            <g id="svg-render-group"></g>
+          </svg>
+          <div class="donut-inner">
+            <div class="donut-cycle-text" id="donut-cycle-display">---</div>
+            <span>Year</span>
+          </div>
+        </div>
+
+        <div class="seat-box">
+          <div class="seat-pill blue" id="pill-dem">Party 1: 0</div>
+          <div class="seat-pill red" id="pill-rep">Party 2: 0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="slider-container" id="slider-container-box">
+        <div class="slider-track-bg"></div>
+        <div class="slider-pegs" id="slider-pegs-container"></div>
+        <input type="range" min="1" max="1" value="1" class="map-slider" id="election-slider">
+      </div>
+      <div class="date" id="date-display">LOADING...</div>
+      <div></div>
+    </div>
+  </div>
+
+  <div id="tooltip" class="custom-tooltip">
+    <div class="tooltip-title" id="tt-title">District Name</div>
+    <div class="tooltip-margin" id="tt-margin">Candidate +0.00%</div>
+    <div class="tooltip-header">Voteshare</div>
+    <div id="tooltip-rows-container">
+      <div class="tooltip-row" id="tt-winner-row">
+        <div id="tt-winner-name">Winner</div>
+        <span id="tt-winner-votes">0%</span>
+      </div>
+      <div class="tooltip-row" id="tt-loser-row">
+        <div id="tt-loser-name">Loser</div>
+        <span id="tt-loser-votes">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="seg-tooltip" class="segment-tooltip">
+    <div class="seg-title" id="seg-tt-title">Segment Summary</div>
+    <div id="seg-tt-list"></div>
+  </div>
+
+  <script>
+    let currentElectionData = { results: [] };
+    let isMapLoaded = false;
+    
+    const stateAbbreviationMap = {
+      "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA",
+      "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE", "Florida": "FL", "Georgia": "GA",
+      "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA",
+      "Kansas": "KS", "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD",
+      "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO",
+      "Montana": "MT", "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH", "New Jersey": "NJ",
+      "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH",
+      "Oklahoma": "OK", "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+      "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT", "Vermont": "VT",
+      "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY"
+    };
+
+    const slider = document.getElementById('election-slider');
+    const dateDisplay = document.getElementById('date-display');
+    const tooltip = document.getElementById('tooltip');
+    const segTooltip = document.getElementById('seg-tooltip');
+    const pegsContainer = document.getElementById('slider-pegs-container');
+    const svgRenderGroup = document.getElementById('svg-render-group');
+    const mapObject = document.getElementById('external-map-object');
+
+    function getDistrictColor(party, margin) {
+      const m = parseFloat(margin);
+      if (party === 1) {
+        if (m >= 15.0) return 'rgb(28, 64, 140)';
+        if (m >= 5.0)  return 'rgb(87, 124, 204)';
+        if (m >= 1.0)  return 'rgb(138, 175, 255)';
+        return 'rgb(148, 155, 179)';
+      } else if (party === 2) {
+        if (m >= 15.0) return 'rgb(191, 29, 41)';
+        if (m >= 5.0)  return 'rgb(255, 88, 101)';
+        if (m >= 1.0)  return 'rgb(255, 139, 152)';
+        return 'rgb(207, 128, 137)';
+      }
+      return '#3a3a3a';
+    }
+
+    function getDarkerColor(party, margin) {
+      const m = parseFloat(margin);
+      if (party === 1) {
+        if (m >= 15.0) return 'rgb(18, 44, 110)';
+        if (m >= 5.0)  return 'rgb(62, 94, 168)';
+        if (m >= 1.0)  return 'rgb(98, 135, 215)';
+        return 'rgb(118, 125, 149)';
+      } else if (party === 2) {
+        if (m >= 15.0) return 'rgb(141, 10, 21)';
+        if (m >= 5.0)  return 'rgb(215, 48, 61)';
+        if (m >= 1.0)  return 'rgb(215, 99, 112)';
+        return 'rgb(167, 98, 107)';
+      }
+      return '#222222';
+    }
+
+    function ensureSvgDefs(svgDoc) {
+      let defs = svgDoc.querySelector('defs');
+      if (!defs) {
+        defs = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        svgDoc.documentElement.prepend(defs);
+      }
+      return defs;
+    }
+
+    function createStripePattern(svgDoc, id, baseColor, stripeColor) {
+      const defs = ensureSvgDefs(svgDoc);
+      let pattern = defs.querySelector(`#${id}`);
+      
+      if (!pattern) {
+        pattern = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        pattern.setAttribute('id', id);
+        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        pattern.setAttribute('width', '2');
+        pattern.setAttribute('height', '2');
+        pattern.setAttribute('patternTransform', 'rotate(45)');
+        
+        const rect1 = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect1.setAttribute('width', '1');
+        rect1.setAttribute('height', '2');
+        rect1.setAttribute('id', `${id}-r1`);
+        
+        const rect2 = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect2.setAttribute('x', '1');
+        rect2.setAttribute('width', '1');
+        rect2.setAttribute('height', '2');
+        rect2.setAttribute('id', `${id}-r2`);
+        
+        pattern.appendChild(rect1);
+        pattern.appendChild(rect2);
+        defs.appendChild(pattern);
+      }
+      
+      svgDoc.getElementById(`${id}-r1`).setAttribute('fill', baseColor);
+      svgDoc.getElementById(`${id}-r2`).setAttribute('fill', stripeColor);
+    }
+
+    function getCoordinatesForPercent(percent) {
+      const x = Math.cos(2 * Math.PI * (percent - 0.25));
+      const y = Math.sin(2 * Math.PI * (percent - 0.25));
+      return [x, y];
+    }
+
+    function createDonutSegmentPath(startPct, endPct, outerRadius, innerRadius) {
+      if (endPct - startPct >= 0.9999) endPct = startPct + 0.9999;
+      
+      const center = 195; 
+      const [sX_out, sY_out] = getCoordinatesForPercent(startPct);
+      const [eX_out, eY_out] = getCoordinatesForPercent(endPct);
+      const [sX_in, sY_in] = getCoordinatesForPercent(startPct);
+      const [eX_in, eY_in] = getCoordinatesForPercent(endPct);
+
+      const x1_out = center + sX_out * outerRadius;
+      const y1_out = center + sY_out * outerRadius;
+      const x2_out = center + eX_out * outerRadius;
+      const y2_out = center + eY_out * outerRadius;
+
+      const x1_in = center + sX_in * innerRadius;
+      const y1_in = center + sY_in * innerRadius;
+      const x2_in = center + eX_in * innerRadius;
+      const y2_in = center + eY_in * innerRadius;
+
+      const largeArc = (endPct - startPct) > 0.5 ? 1 : 0;
+
+      return `
+        M ${x1_out} ${y1_out}
+        A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2_out} ${y2_out}
+        L ${x2_in} ${y2_in}
+        A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1_in} ${y1_in}
+        Z
+      `;
+    }
+
+    function generateSliderPegs(maxValues) {
+      pegsContainer.innerHTML = '';
+      if (maxValues <= 1) return; 
+
+      for (let i = 1; i <= maxValues; i++) {
+        const tick = document.createElement('div');
+        tick.className = 'slider-peg-tick';
+        const percentagePosition = ((i - 1) / (maxValues - 1)) * 100;
+        tick.style.left = `${percentagePosition}%`;
+        pegsContainer.appendChild(tick);
+      }
+    }
+
+    async function locateLatestDataCycle() {
+      let currentCheck = 1;
+      let highestFound = 1;
+
+      while (true) {
+        const paddedStr = String(currentCheck).padStart(3, '0');
+        try {
+          const checkResponse = await fetch(`./elect_data/${paddedStr}.json`, { method: 'HEAD' });
+          if (checkResponse.ok) {
+            highestFound = currentCheck;
+            currentCheck++;
+          } else {
+            break;
+          }
+        } catch (err) {
+          break;
+        }
+      }
+
+      slider.max = highestFound;
+      slider.value = highestFound;
+      generateSliderPegs(highestFound);
+      await loadElectionData(highestFound);
+    }
+
+    async function loadElectionData(fileNumber) {
+      const paddedNumber = String(fileNumber).padStart(3, '0');
+      const filePath = `./elect_data/${paddedNumber}.json`;
+
+      try {
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error('Data file fetch error');
+        currentElectionData = await response.json();
+        
+        const dynamicYearString = String(currentElectionData.year || "");
+        dateDisplay.textContent = dynamicYearString;
+        document.getElementById('topbar-year').textContent = dynamicYearString;
+        document.getElementById('donut-cycle-display').textContent = dynamicYearString;
+
+        if (isMapLoaded) {
+          updateInterface();
+        }
+      } catch (error) {
+        console.error("Could not load election data:", error);
+      }
+    }
+
+    function getSegmentDistricts(party, lookForFlipped) {
+      const list = [];
+      if (!currentElectionData.results) return list;
+
+      currentElectionData.results.forEach(data => {
+        const totalVotes = data.winner_votes + data.loser_votes;
+        if (data && totalVotes > 0 && data.winner_party === party) {
+          const isFlipped = data.flipped === true;
+          if (isFlipped === lookForFlipped) {
+            const rawMarginPct = ((data.winner_votes - data.loser_votes) / totalVotes) * 100;
+            
+            let marginPctString = rawMarginPct.toFixed(2);
+            if (marginPctString.endsWith('0')) {
+              marginPctString = parseFloat(marginPctString).toFixed(1);
+            } else {
+              marginPctString = parseFloat(marginPctString).toString(); 
+              if (!marginPctString.includes('.')) {
+                marginPctString += '.0';
+              }
+            }
+
+            const nameParts = data.winner_name.trim().split(/\s+/);
+            const lastName = nameParts[nameParts.length - 1];
+            
+            list.push({
+              name: data.state.toUpperCase(),
+              label: `${lastName} +${marginPctString}%`,
+              partyClass: `p-${party}`
+            });
+          }
+        }
+      });
+      return list;
+    }
+
+    function updateInterface() {
+      let party1HoldEV = 0, party1FlipEV = 0;
+      let party2HoldEV = 0, party2FlipEV = 0;
+      
+      let totalParty1Votes = 0;
+      let totalParty2Votes = 0;
+
+      const svgDoc = mapObject.contentDocument;
+      if (!svgDoc) return;
+      
+      const allPaths = svgDoc.querySelectorAll('polygon, path');
+      allPaths.forEach(p => p.style.fill = '#3a3a3a');
+
+      if (currentElectionData.results) {
+        currentElectionData.results.forEach(data => {
+          const totalVotes = data.winner_votes + data.loser_votes;
+          const ev = data.electoral_votes || 0;
+          
+          if (totalVotes > 0) {
+            if (data.winner_party === 1) {
+              totalParty1Votes += data.winner_votes;
+              totalParty2Votes += data.loser_votes;
+            } else if (data.winner_party === 2) {
+              totalParty2Votes += data.winner_votes;
+              totalParty1Votes += data.loser_votes;
+            }
+          }
+
+          // Strict adherence to system configuration: value: "US-AB" (Hyphenated)
+          const abbreviation = stateAbbreviationMap[data.state] || "";
+          const pathId = abbreviation ? `US-${abbreviation}` : "";
+          const path = svgDoc.getElementById(pathId);
+          
+          if (totalVotes === 0) {
+            if (path) path.style.fill = '#3a3a3a';
+            return;
+          }
+
+          const winVotes = data.winner_votes;
+          const loseVotes = data.loser_votes;
+          
+          const marginPct = ((winVotes - loseVotes) / totalVotes) * 100;
+          const color = getDistrictColor(data.winner_party, marginPct);
+
+          if (data.winner_party === 1) {
+            if (data.flipped === true) party1FlipEV += ev; else party1HoldEV += ev;
+          }
+          if (data.winner_party === 2) {
+            if (data.flipped === true) party2FlipEV += ev; else party2HoldEV += ev;
+          }
+
+          if (path) {
+            if (data.flipped === true) {
+              const patternId = `flip-pattern-${data.winner_party}-${Math.round(marginPct * 100)}`;
+              const darkerColor = getDarkerColor(data.winner_party, marginPct);
+              createStripePattern(svgDoc, patternId, color, darkerColor);
+              path.style.fill = `url(#${patternId})`;
+            } else {
+              path.style.fill = color;
+            }
+            
+            path.style.transition = 'fill 0.2s ease';
+            path.onmouseenter = (e) => showTooltip(e, data);
+            path.onmousemove = (e) => moveTooltip(e);
+            path.onmouseleave = () => hideTooltip();
+          }
+        });
+      }
+
+      const totalP1 = party1HoldEV + party1FlipEV;
+      const totalP2 = party2HoldEV + party2FlipEV;
+
+      document.getElementById('pill-dem').textContent = `Party 1: ${totalP1}`;
+      document.getElementById('pill-rep').textContent = `Party 2: ${totalP2}`;
+
+      const totalActiveSeats = totalP1 + totalP2;
+      svgRenderGroup.innerHTML = '';
+
+      if (totalActiveSeats > 0) {
+        const p1Pct = totalP1 / totalActiveSeats;
+        const p1HoldPct = party1HoldEV / totalActiveSeats;
+        const p1FlipPct = party1FlipEV / totalActiveSeats;
+        const p2HoldPct = party2HoldEV / totalActiveSeats;
+        const p2FlipPct = party2FlipEV / totalActiveSeats;
+
+        const totalPopularVotes = totalParty1Votes + totalParty2Votes;
+        const popVoteP1Pct = totalPopularVotes > 0 ? (totalParty1Votes / totalPopularVotes) : 0.5;
+
+        const popOuterR = 193;
+        const popInnerR = 168;
+        const outerR_Max = 165;
+        const outerR_Min = 140;
+        const innerR_Max = 137;
+        const innerR_Min = 112;
+
+        const segments = [
+          { start: 0, end: popVoteP1Pct, oR: popOuterR, iR: popInnerR, fill: 'var(--blue)', title: `Party 1 Popular Vote: ${(popVoteP1Pct * 100).toFixed(2)}%`, dists: [], showLabel: true, labelVal: Math.round(popVoteP1Pct * 100) },
+          { start: popVoteP1Pct, end: 1.0, oR: popOuterR, iR: popInnerR, fill: 'var(--red)', title: `Party 2 Popular Vote: ${((1 - popVoteP1Pct) * 100).toFixed(2)}%`, dists: [], showLabel: true, labelVal: Math.round((1 - popVoteP1Pct) * 100) },
+
+          { start: 0, end: p1Pct, oR: outerR_Max, iR: outerR_Min, fill: 'var(--blue)', title: 'Party 1 Total Electoral Votes', dists: [...getSegmentDistricts(1, false), ...getSegmentDistricts(1, true)] },
+          { start: p1Pct, end: 1.0, oR: outerR_Max, iR: outerR_Min, fill: 'var(--red)', title: 'Party 2 Total Electoral Votes', dists: [...getSegmentDistricts(2, false), ...getSegmentDistricts(2, true)] },
+          
+          { start: 0, end: p1HoldPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--blue)', title: 'Party 1 Holds', dists: getSegmentDistricts(1, false) },
+          { start: p1HoldPct, end: p1HoldPct + p1FlipPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--blue-dark)', hasStripe: true, title: 'Party 1 Flips', dists: getSegmentDistricts(1, true) },
+          { start: p1HoldPct + p1FlipPct, end: p1HoldPct + p1FlipPct + p2HoldPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--red)', title: 'Party 2 Holds', dists: getSegmentDistricts(2, false) },
+          { start: p1HoldPct + p1FlipPct + p2HoldPct, end: 1.0, oR: innerR_Max, iR: innerR_Min, fill: 'var(--red-dark)', hasStripe: true, title: 'Party 2 Flips', dists: getSegmentDistricts(2, true) }
+        ];
+
+        segments.forEach(seg => {
+          if (seg.end - seg.start <= 0) return;
+
+          const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          const dAttribute = createDonutSegmentPath(seg.start, seg.end, seg.oR, seg.iR);
+          
+          pathElement.setAttribute('d', dAttribute);
+          pathElement.setAttribute('fill', seg.fill);
+          pathElement.setAttribute('stroke', '#ffffff');
+          pathElement.setAttribute('stroke-width', '2');
+
+          if (seg.hasStripe) {
+            const overlayPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            overlayPath.setAttribute('d', dAttribute);
+            overlayPath.setAttribute('fill', 'url(#donut-stripe)');
+            overlayPath.setAttribute('stroke', '#ffffff');
+            overlayPath.setAttribute('stroke-width', '2');
+            overlayPath.style.pointerEvents = 'none';
+            
+            bindSegmentHover(pathElement, seg.title, seg.dists);
+            svgRenderGroup.appendChild(pathElement);
+            svgRenderGroup.appendChild(overlayPath);
+          } else {
+            bindSegmentHover(pathElement, seg.title, seg.dists);
+            svgRenderGroup.appendChild(pathElement);
+          }
+
+          if (seg.showLabel && (seg.end - seg.start) > 0.05) {
+            const midPct = seg.start + (seg.end - seg.start) / 2;
+            const radiusEval = seg.iR + (seg.oR - seg.iR) / 2;
+            const [xCoord, yCoord] = getCoordinatesForPercent(midPct);
+            const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            
+            textElement.setAttribute('x', String(195 + xCoord * radiusEval));
+            textElement.setAttribute('y', String(195 + yCoord * radiusEval + 4));
+            textElement.setAttribute('fill', '#ffffff');
+            textElement.setAttribute('font-size', '11px');
+            textElement.setAttribute('font-weight', '800');
+            textElement.setAttribute('text-anchor', 'middle');
+            textElement.style.pointerEvents = 'none';
+            textElement.textContent = `${seg.labelVal}%`;
+            svgRenderGroup.appendChild(textElement);
+          }
+        });
+      }
+    }
+
+    function bindSegmentHover(element, title, districtsList) {
+      element.onmouseenter = (e) => {
+        document.getElementById('seg-tt-title').textContent = title;
+        const listContainer = document.getElementById('seg-tt-list');
+        listContainer.innerHTML = '';
+
+        if (districtsList.length === 0) {
+          if(title.includes("Popular Vote")) {
+             listContainer.innerHTML = '<div style="font-size:12px;opacity:0.85;">Total Map Popular Vote Breakdown</div>';
+          } else {
+             listContainer.innerHTML = '<div style="font-size:12px;opacity:0.6;">No Districts</div>';
+          }
+        } else {
+          districtsList.forEach(d => {
+            const row = document.createElement('div');
+            row.className = 'seg-item';
+            row.innerHTML = `<span class="district-lbl">${d.name}</span><span class="mgn ${d.partyClass}">${d.label}</span>`;
+            listContainer.appendChild(row);
+          });
+        }
+        segTooltip.style.display = 'block';
+        moveSegmentTooltip(e);
+      };
+
+      element.onmousemove = (e) => {
+        moveSegmentTooltip(e);
+      };
+
+      element.onmouseleave = () => {
+        segTooltip.style.display = 'none';
+      };
+    }
+
+    function moveSegmentTooltip(e) {
+      segTooltip.style.left = (e.clientX + 15) + 'px';
+      segTooltip.style.top = (e.clientY + 15) + 'px';
+    }
+
+    function showTooltip(e, data) {
+      const winVotes = data.winner_votes;
+      const loseVotes = data.loser_votes;
+      const total = winVotes + loseVotes;
+      const ev = data.electoral_votes || 0;
+      
+      const rawMarginPct = ((winVotes - loseVotes) / total) * 100;
+      let marginPctString = rawMarginPct.toFixed(2);
+      if (marginPctString.endsWith('0')) {
+        marginPctString = parseFloat(marginPctString).toFixed(1);
+      } else {
+        marginPctString = parseFloat(marginPctString).toString(); 
+        if (!marginPctString.includes('.')) marginPctString += '.0';
+      }
+
+      const winPctStr = ((winVotes / total) * 100).toFixed(1) + "%";
+      const losePctStr = ((loseVotes / total) * 100).toFixed(1) + "%";
+
+      const formattedName = `${data.state.toUpperCase()} (${ev} EV)`;
+      document.getElementById('tt-title').textContent = formattedName;
+
+      const nameParts = data.winner_name.trim().split(/\s+/);
+      const lastName = nameParts[nameParts.length - 1];
+
+      const marginEl = document.getElementById('tt-margin');
+      marginEl.textContent = `${lastName} +${marginPctString}%`;
+      marginEl.className = `tooltip-margin party-${data.winner_party}`;
+
+      const winRow = document.getElementById('tt-winner-row');
+      const loseRow = document.getElementById('tt-loser-row');
+
+      document.getElementById('tt-winner-name').textContent = data.winner_name;
+      document.getElementById('tt-winner-votes').textContent = winPctStr;
+
+      document.getElementById('tt-loser-name').textContent = data.loser_name;
+      document.getElementById('tt-loser-votes').textContent = losePctStr;
+
+      winRow.style.backgroundColor = data.winner_party === 1 ? 'var(--blue)' : 'var(--red)';
+      loseRow.style.backgroundColor = data.loser_party === 1 ? 'var(--blue)' : 'var(--red)';
+
+      tooltip.style.display = 'block';
+      moveTooltip(e);
+    }
+
+    function moveTooltip(e) {
+      tooltip.style.left = (e.clientX + 15) + 'px';
+      tooltip.style.top = (e.clientY + 15) + 'px';
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    slider.addEventListener('input', (e) => {
+      loadElectionData(e.target.value);
+    });
+
+    mapObject.addEventListener('load', () => {
+      isMapLoaded = true;
+      if (currentElectionData.results && currentElectionData.results.length > 0) {
+        updateInterface();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      locateLatestDataCycle();
+    });
+  </script>
+</body>
+</html>
