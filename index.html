@@ -778,8 +778,8 @@
       const totalP1 = party1HoldEV + party1FlipEV;
       const totalP2 = party2HoldEV + party2FlipEV;
 
-      document.getElementById('pill-dem').textContent = `Party 1: ${totalP1}`;
-      document.getElementById('pill-rep').textContent = `Party 2: ${totalP2}`;
+      document.getElementById('pill-dem').textContent = `Democrats: ${totalP1}`;
+      document.getElementById('pill-rep').textContent = `Republicans: ${totalP2}`;
 
       const totalActiveSeats = totalP1 + totalP2;
       svgRenderGroup.innerHTML = '';
@@ -802,16 +802,16 @@
         const innerR_Min = 112;
 
         const segments = [
-          { start: 0, end: popVoteP1Pct, oR: popOuterR, iR: popInnerR, fill: 'var(--blue)', title: `Party 1 Popular Vote: ${(popVoteP1Pct * 100).toFixed(2)}%`, dists: [], showLabel: true, labelVal: Math.round(popVoteP1Pct * 100) },
-          { start: popVoteP1Pct, end: 1.0, oR: popOuterR, iR: popInnerR, fill: 'var(--red)', title: `Party 2 Popular Vote: ${((1 - popVoteP1Pct) * 100).toFixed(2)}%`, dists: [], showLabel: true, labelVal: Math.round((1 - popVoteP1Pct) * 100) },
+          { start: 0, end: popVoteP1Pct, oR: popOuterR, iR: popInnerR, fill: 'var(--blue)', title: `Democrats Popular Vote: ${(popVoteP1Pct * 100).toFixed(2)}%`, dists: [], showLabel: true, labelVal: Math.round(popVoteP1Pct * 100) },
+          { start: popVoteP1Pct, end: 1.0, oR: popOuterR, iR: popInnerR, fill: 'var(--red)', title: `Republicans Popular Vote: ${((1 - popVoteP1Pct) * 100).toFixed(2)}%`, dists: [], showLabel: true, labelVal: Math.round((1 - popVoteP1Pct) * 100) },
 
-          { start: 0, end: p1Pct, oR: outerR_Max, iR: outerR_Min, fill: 'var(--blue)', title: 'Party 1 Total Electoral Votes', dists: [...getSegmentDistricts(1, false), ...getSegmentDistricts(1, true)] },
-          { start: p1Pct, end: 1.0, oR: outerR_Max, iR: outerR_Min, fill: 'var(--red)', title: 'Party 2 Total Electoral Votes', dists: [...getSegmentDistricts(2, false), ...getSegmentDistricts(2, true)] },
+          { start: 0, end: p1Pct, oR: outerR_Max, iR: outerR_Min, fill: 'var(--blue)', title: 'Democrats Total Electoral Votes', dists: [...getSegmentDistricts(1, false), ...getSegmentDistricts(1, true)] },
+          { start: p1Pct, end: 1.0, oR: outerR_Max, iR: outerR_Min, fill: 'var(--red)', title: 'Republicans Total Electoral Votes', dists: [...getSegmentDistricts(2, false), ...getSegmentDistricts(2, true)] },
           
-          { start: 0, end: p1HoldPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--blue)', title: 'Party 1 Holds', dists: getSegmentDistricts(1, false) },
-          { start: p1HoldPct, end: p1HoldPct + p1FlipPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--blue-dark)', hasStripe: true, title: 'Party 1 Flips', dists: getSegmentDistricts(1, true) },
-          { start: p1HoldPct + p1FlipPct, end: p1HoldPct + p1FlipPct + p2HoldPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--red)', title: 'Party 2 Holds', dists: getSegmentDistricts(2, false) },
-          { start: p1HoldPct + p1FlipPct + p2HoldPct, end: 1.0, oR: innerR_Max, iR: innerR_Min, fill: 'var(--red-dark)', hasStripe: true, title: 'Party 2 Flips', dists: getSegmentDistricts(2, true) }
+          { start: 0, end: p1HoldPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--blue)', title: 'Democrats Holds', dists: getSegmentDistricts(1, false) },
+          { start: p1HoldPct, end: p1HoldPct + p1FlipPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--blue-dark)', hasStripe: true, title: 'Democrats Flips', dists: getSegmentDistricts(1, true) },
+          { start: p1HoldPct + p1FlipPct, end: p1HoldPct + p1FlipPct + p2HoldPct, oR: innerR_Max, iR: innerR_Min, fill: 'var(--red)', title: 'Republicans Holds', dists: getSegmentDistricts(2, false) },
+          { start: p1HoldPct + p1FlipPct + p2HoldPct, end: 1.0, oR: innerR_Max, iR: innerR_Min, fill: 'var(--red-dark)', hasStripe: true, title: 'Republicans Flips', dists: getSegmentDistricts(2, true) }
         ];
 
         segments.forEach(seg => {
